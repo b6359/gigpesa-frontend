@@ -1,0 +1,41 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/gigpesac/gigpesa-backend"
+PassengerBaseURI "/"
+PassengerNodejs "/home/gigpesac/nodevenv/gigpesa-backend/20/bin/node"
+PassengerAppType node
+PassengerStartupFile server.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+
+# ✅ Redirect to www and HTTPS
+RewriteEngine On
+RewriteCond %{HTTP_HOST} ^gigpesa\.co\.ke$ [NC]
+RewriteRule ^(.*)$ https://www.gigpesa.co.ke/$1 [L,R=301]
+
+# ✅ Handle encoded/typo routes safely
+RewriteCond %{THE_REQUEST} /sign\%20in [NC]
+RewriteRule ^sign%20in$ /signin [R=301,L]
+
+RewriteCond %{THE_REQUEST} /sign[\-_]%20?up [NC]
+RewriteRule ^sign[\-_]%20?up$ /register [R=301,L]
+
+# ✅ Allow React Router fallback
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+SetEnv BASE_URL https://gigpesa.co.ke
+SetEnv DB_HOST gigpesa.co.ke
+SetEnv DB_NAME gigpesac_gigpesa
+SetEnv DB_PASSWORD Gigpesa@2024!
+SetEnv DB_USER gigpesac_registeredusers
+SetEnv JWT_SECRET q#vU1xL$yY%7zKZ0w@Wk2X3a
+SetEnv PORT 5000
+SetEnv EMAIL_USER support@gigpesa.co.ke
+SetEnv EMAIL_PASS p3CGzT03+p(~cN{e
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
