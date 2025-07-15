@@ -13,7 +13,6 @@ import {
   Settings,
   LogOut,
   UserPlus,
-  Menu,
   X,
 } from "lucide-react";
 
@@ -29,13 +28,10 @@ type Job = {
   default_payout: string;
   status: string;
 };
+const PAGE_SIZE = 10;
+const baseUrl = "http://192.168.1.24:5000/api";
 
-const BATCH_SIZE = 10;
-
-// Jobs Section
 const JobDashboard: React.FC = () => {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [filters, setFilters] = useState({
     search: "",
     country: "",
@@ -44,107 +40,128 @@ const JobDashboard: React.FC = () => {
   });
   const [countries, setCountries] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [tasks, setTasks] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchTasks = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("gigpesa_token");
         if (!token) return;
 
-        const res = await axios.get("/api/jobs", {
+        const res = await axios.get(`${baseUrl}/user/tasks`, {
           headers: { Authorization: `Bearer ${token}` },
+          params: {
+            start: (currentPage - 1) * PAGE_SIZE,
+            limit: PAGE_SIZE,
+            searchText: filters.search,
+            country: filters.country,
+            category: filters.category,
+            payment_range: filters.payment,
+          },
         });
 
-        const data: Job[] = res.data.jobs;
-        setJobs(data);
+        const data: Job[] = res.data.tasks;
 
+        // Reset tasks when changing filters (only if page is 1)
+        setTasks((prev) => (currentPage === 1 ? data : [...prev, ...data]));
+        setTotalPages(res.data.totalPages || 0);
+
+        // Extract countries and categories
         const countrySet = new Set<string>();
         const categorySet = new Set<string>();
-
-        data.forEach((j) => {
-          j.country_codes
+        data.forEach((task) => {
+          task.country_codes
             .split(";")
             .map((c) => c.trim())
             .filter(Boolean)
             .forEach((c) => countrySet.add(c));
-          if (j.category) categorySet.add(j.category.trim());
+          if (task.category) categorySet.add(task.category.trim());
         });
 
         setCountries([...countrySet].sort());
         setCategories([...categorySet].sort());
       } catch (err) {
-        console.error("Failed to fetch jobs:", err);
+        console.error("Failed to fetch tasks:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchJobs();
-  }, []);
-
-  const filtered = jobs.filter((job) => {
-    const term = filters.search.toLowerCase();
-    const okSearch =
-      job.name.toLowerCase().includes(term) ||
-      job.description.toLowerCase().includes(term);
-
-    const jobCountries = job.country_codes
-      .split(";")
-      .map((c) => c.trim().toLowerCase());
-    const okCountry =
-      !filters.country || jobCountries.includes(filters.country.toLowerCase());
-
-    const okCategory =
-      !filters.category ||
-      job.category.toLowerCase() === filters.category.toLowerCase();
-
-    const payout = parseFloat(job.default_payout || "0") * 0.3;
-    let minPay = 0,
-      maxPay = Infinity;
-    if (filters.payment.includes("-")) {
-      [minPay, maxPay] = filters.payment.split("-").map(Number);
-    }
-    const okPayout =
-      !filters.payment || (payout >= minPay && payout <= maxPay);
-
-    return okSearch && okCountry && okCategory && okPayout;
-  });
-
-  const loadMore = () => {
-    setVisibleCount((prev) => prev + BATCH_SIZE);
-  };
+    fetchTasks();
+  }, [currentPage, filters]); // ✅ re-fetch on page or filter change
 
   useEffect(() => {
-    const onScroll = () => {
-      if (
-        window.innerHeight + window.scrollY >=
-        document.body.offsetHeight - 100
-      ) {
-        loadMore();
+    const handleScroll = () => {
+      const nearBottom =
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 150;
+
+      if (nearBottom && !loading && currentPage < totalPages) {
+        setCurrentPage((prev) => prev + 1);
       }
     };
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loading, currentPage, totalPages]);
+
+  const filtered = tasks.filter((task) => {
+    const searchTerm = filters.search.trim().toLowerCase();
+
+    const matchesSearch =
+      !searchTerm ||
+      task.name.toLowerCase().includes(searchTerm) ||
+      task.description.toLowerCase().includes(searchTerm);
+
+    const jobCountries = task.country_codes
+      .split(";")
+      .map((c) => c.trim().toLowerCase());
+
+    const matchesCountry =
+      !filters.country || jobCountries.includes(filters.country.toLowerCase());
+
+    const matchesCategory =
+      !filters.category ||
+      task.category?.toLowerCase() === filters.category.toLowerCase();
+
+    const payout = parseFloat(task.default_payout || "0") * 0.3;
+
+    let minPay = 0;
+    let maxPay = Infinity;
+
+    if (filters.payment.includes("-")) {
+      const [min, max] = filters.payment.split("-").map(Number);
+      minPay = isNaN(min) ? 0 : min;
+      maxPay = isNaN(max) ? Infinity : max;
+    }
+
+    const matchesPayment =
+      !filters.payment || (payout >= minPay && payout <= maxPay);
+
+    return matchesSearch && matchesCountry && matchesCategory && matchesPayment;
+  });
 
   const updateFilter = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setVisibleCount(BATCH_SIZE);
+    setCurrentPage(1); // ✅ triggers API re-call from page 1
   };
 
   return (
     <div className="p-4">
-      {/* Banner */}
-      <div className="relative bg-white border-l-4 border-green-700 p-4 rounded-lg mb-6 shadow animate-slideIn">
+      <div className="relative bg-white border-l-4 border-green-700 p-4 rounded-lg mb-6 shadow">
         <div className="text-sm sm:text-base text-gray-700">
-          Available jobs today: <span className="font-medium">{filtered.length}</span>
+          Available jobs today:{" "}
+          <span className="font-medium">{filtered.length}</span>
         </div>
         <div className="relative overflow-hidden h-6 sm:h-7 mt-2">
-          <div className="absolute whitespace-nowrap animate-ticker text-green-600 text-sm font-normal">
-            Use filters or scroll to explore more jobs.
+          <div className="absolute whitespace-nowrap animate-ticker text-green-600 text-sm">
+            Use filters or pagination buttons to explore jobs.
           </div>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-gray-100 p-3 rounded flex flex-col sm:flex-row flex-wrap gap-3">
         <input
           type="text"
@@ -153,6 +170,7 @@ const JobDashboard: React.FC = () => {
           onChange={(e) => updateFilter("search", e.target.value)}
           className="flex-1 px-3 py-2 text-sm rounded-md bg-white text-black"
         />
+
         <select
           value={filters.country}
           onChange={(e) => updateFilter("country", e.target.value)}
@@ -160,9 +178,12 @@ const JobDashboard: React.FC = () => {
         >
           <option value="">All Countries</option>
           {countries.map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>
+              {c}
+            </option>
           ))}
         </select>
+
         <select
           value={filters.category}
           onChange={(e) => updateFilter("category", e.target.value)}
@@ -170,9 +191,12 @@ const JobDashboard: React.FC = () => {
         >
           <option value="">All Categories</option>
           {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>
+              {c}
+            </option>
           ))}
         </select>
+
         <select
           value={filters.payment}
           onChange={(e) => updateFilter("payment", e.target.value)}
@@ -185,49 +209,76 @@ const JobDashboard: React.FC = () => {
         </select>
       </div>
 
-      {/* Job List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-        {filtered.slice(0, visibleCount).map((job) => {
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+        {filtered.map((job) => {
           const mainCountry = job.country_codes.split(";")[0]?.toLowerCase();
           return (
-            <div key={job.id} className="relative border rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition text-sm">
+            <div
+              key={job.id}
+              className="relative border rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition text-sm"
+            >
               <h4 className="text-base font-medium mb-1">{job.name}</h4>
               <p className="text-gray-600 mb-2">{job.description}</p>
+
               <ul className="space-y-1 text-gray-700">
-                <li><span className="font-medium">ID:</span> {job.id}</li>
-                <li><span className="font-medium">Status:</span> {job.status}</li>
-                <li><span className="font-medium">Category:</span> {job.category}</li>
-                <li><span className="font-medium">Device:</span> {job.device_type}</li>
-                <li><span className="font-medium">Country:</span> {job.country_codes}</li>
-                <li><span className="font-medium">Expires:</span> {job.expiration_date}</li>
-                <li><span className="font-medium">Payout:</span> ${ (parseFloat(job.default_payout || "0") * 0.3).toFixed(2) }</li>
+                <li>
+                  <span className="font-medium">ID:</span> {job.id}
+                </li>
+                <li>
+                  <span className="font-medium">Status:</span> {job.status}
+                </li>
+                <li>
+                  <span className="font-medium">Category:</span> {job.category}
+                </li>
+
+                <li>
+                  <span className="font-medium">Device:</span> {job.device_type}
+                </li>
+                <li>
+                  <span className="font-medium">Country:</span>{" "}
+                  {job.country_codes}
+                </li>
+                <li>
+                  <span className="font-medium">Expires:</span>{" "}
+                  {job.expiration_date}
+                </li>
+                <li>
+                  <span className="font-medium">Payout:</span> $
+                  {(parseFloat(job.default_payout || "0") * 0.3).toFixed(2)}
+                </li>
               </ul>
-              <a
-                href={`/job-submission?jobId=${job.id}`}
+
+              <Link
+                to={`/job-submission?jobId=${job.id}`} // ← route param, not search param
                 className="mt-3 inline-block bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
               >
                 Apply Now
-              </a>
+              </Link>
               {mainCountry && (
                 <span className="absolute bottom-2 right-2 w-6 h-4 overflow-hidden">
-                  <span className={`fi fi-${mainCountry} w-full h-full block`} />
+                  <span
+                    className={`fi fi-${mainCountry} w-full h-full block`}
+                  />
                 </span>
               )}
             </div>
           );
         })}
       </div>
-      <div className="text-center text-sm text-gray-500 mt-4">
-        {visibleCount >= filtered.length ? "All jobs loaded." : "Scroll to load more jobs..."}
-      </div>
+
+      {loading && (
+        <div className="mt-6 text-center text-sm text-gray-500">
+          Loading more tasks...
+        </div>
+      )}
     </div>
   );
 };
+
 // Main Dashboard Component
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<{ name: string } | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -252,84 +303,115 @@ const Dashboard: React.FC = () => {
     time < 12 ? "Good morning" : time < 18 ? "Good afternoon" : "Good evening";
 
   const navLinks = [
-    { to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { to: "/micro-jobs", label: "Micro-Jobs", icon: <Briefcase className="w-5 h-5" /> },
-    { to: "/withdrawal", label: "Withdraw", icon: <Wallet className="w-5 h-5" /> },
-    { to: "/advertise", label: "Advertise", icon: <Megaphone className="w-5 h-5" /> },
+    {
+      to: "/dashboard",
+      label: "Dashboard",
+      icon: <LayoutDashboard className="w-5 h-5" />,
+    },
+    {
+      to: "/micro-jobs",
+      label: "Micro-Jobs",
+      icon: <Briefcase className="w-5 h-5" />,
+    },
+    {
+      to: "/withdrawal",
+      label: "Withdrawal",
+      icon: <Wallet className="w-5 h-5" />,
+    },
+    {
+      to: "/advertise",
+      label: "Advertise",
+      icon: <Megaphone className="w-5 h-5" />,
+    },
   ];
+
+  const [summary, setSummary] = useState({
+    availableEarnings: "0.00",
+    pendingEarnings: "0.00",
+    referralCount: 0,
+  });
+
+  useEffect(() => {
+    const checkUser = () => {
+      const saved = localStorage.getItem("gigpesa_user");
+      if (!saved) {
+        navigate("/signin");
+      } else {
+        setUser(JSON.parse(saved));
+      }
+    };
+
+    const fetchSummary = async () => {
+      const token = localStorage.getItem("gigpesa_token");
+      if (!token) return;
+
+      try {
+        const res = await axios.get(`${baseUrl}/user/dashboard/summary`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSummary(res.data);
+      } catch (error) {
+        console.error("Failed to fetch summary", error);
+      }
+    };
+
+    checkUser();
+    fetchSummary();
+  }, [navigate]);
 
   return (
     <>
-      <header className="bg-green-700 text-white shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <Link to="/" className="flex items-center">
-            <img src="/images/gigpesa-website-logo.png" alt="GigPesa Logo" className="h-12 w-auto" />
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            {navLinks.map(({ to, label, icon }) => (
-              <Link key={label} to={to} className="flex items-center gap-1 hover:underline">
-                {icon} {label}
-              </Link>
-            ))}
-            <Link to="/notifications" className="hover:text-green-300">
-              <Bell className="w-5 h-5" />
-            </Link>
-            <div className="relative">
-              <button onClick={() => setProfileOpen((o) => !o)}>
-                <img src="/images/default-avatar.png" alt="Avatar" className="w-8 h-8 rounded-full border-2 border-white" />
-              </button>
-              {profileOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white text-gray-700 rounded-md shadow-xl z-50">
-                  <Link to="/settings" className="flex items-center px-4 py-2 hover:bg-gray-100">
-                    <Settings className="w-4 h-4" /> Settings
-                  </Link>
-                  <Link to="/referrals" className="flex items-center px-4 py-2 hover:bg-gray-100">
-                    <UserPlus className="w-4 h-4" /> Referrals
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center px-4 py-2 hover:bg-gray-100"
-                  >
-                    <LogOut className="w-4 h-4" /> Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </nav>
-          <button className="md:hidden" onClick={() => setMobileMenuOpen(true)}>
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
-      </header>
-
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setMobileMenuOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
       {mobileMenuOpen && (
         <div className="fixed top-0 right-0 w-4/5 max-w-xs h-full bg-white z-50 shadow-xl">
           <div className="flex justify-end p-4">
-           <button onClick={() => setMobileMenuOpen(false)}>
-  <X className="h-6 w-6" />
-</button>
+            <button onClick={() => setMobileMenuOpen(false)}>
+              <X className="h-6 w-6" />
+            </button>
           </div>
           <div className="px-6 space-y-5 font-medium text-sm">
             {navLinks.map(({ to, label, icon }) => (
-              <Link key={label} to={to} className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+              <Link
+                key={label}
+                to={to}
+                className="flex items-center gap-3"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 {icon} {label}
               </Link>
             ))}
-            <Link to="/notifications" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+            <Link
+              to="/notifications"
+              className="flex items-center gap-3"
+              onClick={() => setMobileMenuOpen(false)}
+            >
               <Bell className="w-5 h-5" /> Notifications
             </Link>
             <hr />
-            <Link to="/settings" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+            <Link
+              to="/settings"
+              className="flex items-center gap-3"
+              onClick={() => setMobileMenuOpen(false)}
+            >
               <Settings className="w-5 h-5" /> Settings
             </Link>
-            <Link to="/referrals" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+            <Link
+              to="/referral"
+              className="flex items-center gap-3"
+              onClick={() => setMobileMenuOpen(false)}
+            >
               <UserPlus className="w-5 h-5" /> Referrals
             </Link>
             <button
-              onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleLogout();
+              }}
               className="flex items-center gap-3 w-full hover:text-red-500"
             >
               <LogOut className="w-5 h-5" /> Logout
@@ -344,17 +426,36 @@ const Dashboard: React.FC = () => {
         </h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          {[{ title: "Total Earnings", value: "$1,245.00", icon: <DollarSign className="w-6 h-6 text-green-600" /> },
-            { title: "Pending Payments", value: "$312.00", icon: <Clock className="w-6 h-6 text-yellow-500" /> },
-            { title: "Referrals", value: "89", icon: <Users className="w-6 h-6 text-blue-600" /> }]
-            .map(({ title, value, icon }) => (
-              <div key={title} className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg">
-                <div className="flex items-center gap-4">
-                  {icon}
-                  <div><p className="text-sm text-gray-500">{title}</p><p className="text-xl font-semibold">{value}</p></div>
+          {[
+            {
+              title: "Total Earnings",
+              value: `$${parseFloat(summary.availableEarnings).toFixed(2)}`,
+              icon: <DollarSign className="w-6 h-6 text-green-600" />,
+            },
+            {
+              title: "Pending Payments",
+              value: `$${parseFloat(summary.pendingEarnings).toFixed(2)}`,
+              icon: <Clock className="w-6 h-6 text-yellow-500" />,
+            },
+            {
+              title: "Referrals",
+              value: summary.referralCount.toString(),
+              icon: <Users className="w-6 h-6 text-blue-600" />,
+            },
+          ].map(({ title, value, icon }) => (
+            <div
+              key={title}
+              className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg"
+            >
+              <div className="flex items-center gap-4">
+                {icon}
+                <div>
+                  <p className="text-sm text-gray-500">{title}</p>
+                  <p className="text-xl font-semibold">{value}</p>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
         </div>
 
         <JobDashboard />

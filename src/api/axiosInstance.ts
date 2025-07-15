@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://www.gigpesa.co.ke/api", // ✅ Set via .env
+  baseURL: import.meta.env.REACT_APP_API_URL, // ✅ Set via .env
 });
 
 // Attach token to headers
