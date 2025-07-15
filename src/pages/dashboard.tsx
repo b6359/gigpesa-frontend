@@ -42,6 +42,7 @@ const JobDashboard: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [tasks, setTasks] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
@@ -68,6 +69,7 @@ const JobDashboard: React.FC = () => {
         // Reset tasks when changing filters (only if page is 1)
         setTasks((prev) => (currentPage === 1 ? data : [...prev, ...data]));
         setTotalPages(res.data.totalPages || 0);
+        setTotalRecords(res.data.total || 0);
 
         // Extract countries and categories
         const countrySet = new Set<string>();
@@ -153,7 +155,7 @@ const JobDashboard: React.FC = () => {
       <div className="relative bg-white border-l-4 border-green-700 p-4 rounded-lg mb-6 shadow">
         <div className="text-sm sm:text-base text-gray-700">
           Available jobs today:{" "}
-          <span className="font-medium">{filtered.length}</span>
+          <span className="font-medium">{totalRecords}</span>
         </div>
         <div className="relative overflow-hidden h-6 sm:h-7 mt-2">
           <div className="absolute whitespace-nowrap animate-ticker text-green-600 text-sm">
@@ -210,7 +212,7 @@ const JobDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-        {filtered.map((job) => {
+        {tasks.map((job) => {
           const mainCountry = job.country_codes.split(";")[0]?.toLowerCase();
           return (
             <div
