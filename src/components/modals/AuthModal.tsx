@@ -270,7 +270,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   useEffect(() => {
     const stored =
-      referrerCode || localStorage.getItem("gigpesa_referrer") || "";
+      referrerCode || sessionStorage.getItem("gigpesa_referrer") || "";
     if (stored) setForm((p) => ({ ...p, referrer: stored }));
   }, [referrerCode]);
 
@@ -432,8 +432,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
       const { token, user, message } = data;
 
       if ((authMode === "register" || authMode === "signin") && token && user) {
-        localStorage.setItem("gigpesa_token", token);
-        localStorage.setItem("gigpesa_user", JSON.stringify(user));
+        sessionStorage.setItem("gigpesa_token", token);
+        sessionStorage.setItem("gigpesa_user", JSON.stringify(user));
 
         toast.success(
           message ||

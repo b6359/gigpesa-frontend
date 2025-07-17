@@ -18,10 +18,10 @@ const RefRegister: React.FC = () => {
       c = q.get("ref") || undefined;
     }
 
-    if (!c) c = localStorage.getItem("gigpesa_referrer") || undefined;
+    if (!c) c = sessionStorage.getItem("gigpesa_referrer") || undefined;
 
     if (c) {
-      localStorage.setItem("gigpesa_referrer", c);
+      sessionStorage.setItem("gigpesa_referrer", c);
       setCode(c);
     }
 

@@ -9,9 +9,9 @@ const API = axios.create({
   },
 });
 
-// Optional: Attach token if stored in localStorage
+// Optional: Attach token if stored in sessionStorage
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

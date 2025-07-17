@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -26,6 +26,7 @@ interface HeaderProps {
 
 const defaultLinks: NavItem[] = [
   { to: "/dashboard",  label: "Dashboard",   icon: <LayoutDashboard className="w-5 h-5" /> },
+  { to: "/job-history", label: "Job History",  icon: <Briefcase       className="w-5 h-5" /> },
   { to: "/micro-jobs", label: "Micro-Jobs",  icon: <Briefcase       className="w-5 h-5" /> },
   { to: "/withdrawal", label: "Withdrawal",  icon: <Wallet          className="w-5 h-5" /> },
   { to: "/advertise",  label: "Advertise",   icon: <Megaphone       className="w-5 h-5" /> },
@@ -37,9 +38,15 @@ const DashboardNavbar: React.FC<HeaderProps> = ({ navLinks = defaultLinks, onLog
   const navigate = useNavigate();
 
   const logout = () => {
-    localStorage.removeItem("gigpesa_user");
-    onLogout ? onLogout() : navigate("/signin");
+    sessionStorage.removeItem("gigpesa_user");
+    onLogout ? onLogout() : navigate("/");
   };
+  useEffect(()=>{
+    let user = sessionStorage.getItem("gigpesa_user")
+    if(!user){
+      navigate("/");
+    }
+  },[])
 
   return (
     <header className="bg-green-700 text-white shadow-md sticky top-0 z-50">

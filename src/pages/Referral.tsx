@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 
 const getReferralLink = () => {
-  const saved = localStorage.getItem("gigpesa_user");
+  const saved = sessionStorage.getItem("gigpesa_user");
   let id = "unknown";
 
   if (saved) {

@@ -9,7 +9,7 @@ let refreshPromise: Promise<void> | null = null;
 
 // Helper to get access token from local or session storage
 const getToken = () =>
-  localStorage.getItem("gigpesa_token") || sessionStorage.getItem("gigpesa_token");
+  sessionStorage.getItem("gigpesa_token") || sessionStorage.getItem("gigpesa_token");
 
 // Auto-refresh the JWT token
 async function refreshToken(): Promise<void> {
@@ -24,7 +24,7 @@ async function refreshToken(): Promise<void> {
       if (!res.ok) throw new Error("Failed to refresh token");
       const data = await res.json();
       if (data.access_token) {
-        localStorage.setItem("gigpesa_token", data.access_token);
+        sessionStorage.setItem("gigpesa_token", data.access_token);
       }
     })
     .finally(() => {

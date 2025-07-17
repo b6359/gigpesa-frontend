@@ -49,7 +49,7 @@ const JobDashboard: React.FC = () => {
     const fetchTasks = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("gigpesa_token");
+        const token = sessionStorage.getItem("gigpesa_token");
         if (!token) return;
 
         const res = await axios.get(`${baseUrl}/user/tasks`, {
@@ -285,9 +285,9 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const checkUser = () => {
-      const saved = localStorage.getItem("gigpesa_user");
+      const saved = sessionStorage.getItem("gigpesa_user");
       if (!saved) {
-        navigate("/signin");
+        navigate("/");
       } else {
         setUser(JSON.parse(saved));
       }
@@ -296,8 +296,8 @@ const Dashboard: React.FC = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("gigpesa_user");
-    navigate("/signin");
+    sessionStorage.removeItem("gigpesa_user");
+    navigate("/");
   };
 
   const time = new Date().getHours();
@@ -335,16 +335,16 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const checkUser = () => {
-      const saved = localStorage.getItem("gigpesa_user");
+      const saved = sessionStorage.getItem("gigpesa_user");
       if (!saved) {
-        navigate("/signin");
+        navigate("/");
       } else {
         setUser(JSON.parse(saved));
       }
     };
 
     const fetchSummary = async () => {
-      const token = localStorage.getItem("gigpesa_token");
+      const token = sessionStorage.getItem("gigpesa_token");
       if (!token) return;
 
       try {

@@ -6,8 +6,8 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const token = localStorage.getItem("gigpesa_token");
-  return token ? children : <Navigate to="/signin" replace />;
+  const token = sessionStorage.getItem("gigpesa_token");
+  return token ? children : <Navigate to="/" replace />;
 };
 
 export default PrivateRoute;

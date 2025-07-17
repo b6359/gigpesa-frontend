@@ -30,7 +30,6 @@ const Navbar: React.FC<NavbarProps> = ({ onRegister, onSignIn, minimal = false }
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           <Link to="/about-us" className="hover:underline">About</Link>
-          <Link to="/referral" className="hover:underline">Referral Program</Link>
           {!minimal && (
             <>
               <button onClick={onSignIn} className="hover:underline">Sign In</button>

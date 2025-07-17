@@ -24,7 +24,7 @@ const Settings: React.FC = () => {
   const [error, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("gigpesa_user");
+    const stored = sessionStorage.getItem("gigpesa_user");
     if (stored) {
       const parsed = JSON.parse(stored) as User;
       setUser(parsed);
@@ -50,7 +50,7 @@ const Settings: React.FC = () => {
 
       const updated = (await res.json()) as User;
       setUser(updated);
-      localStorage.setItem("gigpesa_user", JSON.stringify(updated));
+      sessionStorage.setItem("gigpesa_user", JSON.stringify(updated));
       setEdit(false);
     } catch (e: any) {
       setErr(e.message || "Failed to save");

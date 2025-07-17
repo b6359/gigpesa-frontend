@@ -52,7 +52,7 @@ const JobSubmissionPage = () => {
 
     const fetchJob = async () => {
       try {
-        const token = localStorage.getItem("gigpesa_token");
+        const token = sessionStorage.getItem("gigpesa_token");
         if (!token) return;
 
         const res = await fetch(`${baseUrl}/user/task/${jobId}`, {
@@ -115,7 +115,7 @@ const JobSubmissionPage = () => {
     console.log("Submitting payload:", payload);
 
     try {
-      const token = localStorage.getItem("gigpesa_token");
+      const token = sessionStorage.getItem("gigpesa_token");
       if (!token) return;
 
       const res = await fetch(`${baseUrl}/user/task/submit`, {
@@ -147,123 +147,125 @@ const JobSubmissionPage = () => {
     return <p className="text-center mt-10 text-red-600">Job not found.</p>;
 
   return (
-    <main className="p-6 max-w-4xl mx-auto mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-      <h1 className="text-2xl font-bold mb-2">{job.name}</h1>
-      <p className="text-gray-600 dark:text-gray-300 mb-4">{job.description}</p>
+    <main className="max-w-3xl mx-auto mt-10 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl space-y-6">
+  {/* Job Header */}
+  <div>
+    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+      {job.name}
+    </h1>
+    <p className="text-sm text-gray-500 dark:text-gray-300">{job.description}</p>
+  </div>
 
-      <ul className="mb-4 space-y-1">
-        <li>
-          <strong>Category:</strong> {job.category}
-        </li>
-        <li>
-          <strong>Device:</strong> {job.device_type}
-        </li>
-        <li>
-          <strong>Country:</strong> {job.country_codes}
-        </li>
-        <li>
-          <strong>Payout:</strong> ${job.default_payout}
-        </li>
-        <li>
-          <strong>ID:</strong> {job.id}
-        </li>
-        <li>
-          <strong>Status:</strong> {job.status}
-        </li>
-      </ul>
+  {/* Job Info */}
+  <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+    <div>Category: {job.category}</div>
+    <div>Device: {job.device_type}</div>
+    <div>Country: {job.country_codes}</div>
+    <div>Payout: ${job.default_payout}</div>
+    <div>ID: {job.id}</div>
+    <div>Status: {job.status}</div>
+  </div>
 
-      <a
-        href={job.offer_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        onMouseDown={() => setCountdownStarted(true)}
+  {/* Start Task Button */}
+  <div>
+    <a
+      href={job.offer_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+      onMouseDown={() => setCountdownStarted(true)}
+    >
+      Start Task
+    </a>
+
+    {countdownStarted && (
+      <p className="text-sm text-red-600 mt-2">
+        {canSubmit
+          ? "You can now submit your task."
+          : `Submit in ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")}`}
+      </p>
+    )}
+  </div>
+
+  {/* Submission Form */}
+  <form onSubmit={handleSubmit} className="space-y-4">
+    {/* Earnings */}
+    <div>
+      <label htmlFor="earnings" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+        Earnings (USD)
+      </label>
+      <input
+        id="earnings"
+        type="text"
+        value={job?.earnings || job?.default_payout || "0.00"}
+        readOnly
+        className="mt-1 w-full border px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 dark:text-white cursor-not-allowed"
+      />
+    </div>
+
+    {/* Status */}
+    <div>
+      <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+        Status
+      </label>
+      <input
+        id="status"
+        type="text"
+        value={job?.status || "Pending"}
+        readOnly
+        className="mt-1 w-full border px-3 py-2 rounded bg-gray-100 dark:bg-gray-700 dark:text-white cursor-not-allowed"
+      />
+    </div>
+
+    {/* IP Address */}
+    <div>
+      <label htmlFor="ip" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+        Proof (IP Address)
+      </label>
+      <input
+        id="ip"
+        required
+        placeholder="e.g. 192.168.1.1:1234"
+        value={ipAddress}
+        onChange={(e) => setIpAddress(e.target.value)}
+        className="mt-1 w-full border px-3 py-2 rounded bg-white dark:bg-gray-900 dark:text-white"
+      />
+    </div>
+
+    {/* Device Type */}
+    <div>
+      <label htmlFor="device" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+        Device Type
+      </label>
+      <select
+        id="device"
+        required
+        value={deviceType}
+        onChange={(e) => setDeviceType(e.target.value)}
+        className="mt-1 w-full border px-3 py-2 rounded bg-white dark:bg-gray-900 dark:text-white"
       >
-        Start Task
-      </a>
+        <option value="">Choose device</option>
+        <option value="Mobile">Mobile</option>
+        <option value="Tablet">Tablet</option>
+        <option value="Desktop">Desktop</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
 
-      {countdownStarted && (
-        <p className="text-sm text-red-600 mt-2">
-          {canSubmit
-            ? "You can now submit your task."
-            : `Submit in ${Math.floor(timeLeft / 60)}:${String(
-                timeLeft % 60
-              ).padStart(2, "0")}`}
-        </p>
-      )}
+    {/* Submit Button */}
+    <button
+      type="submit"
+      className={`w-full py-2 rounded-lg font-semibold transition ${
+        canSubmit
+          ? "bg-green-600 text-white hover:bg-green-700"
+          : "bg-green-400 text-white opacity-70 cursor-not-allowed"
+      }`}
+    >
+      Submit Job
+    </button>
+  </form>
+</main>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="earnings" className="block text-sm font-medium">
-            Earnings (USD)
-          </label>
-          <input
-            id="earnings"
-            type="text"
-            value={job?.earnings || job?.default_payout || "0.00"}
-            readOnly
-            className="mt-1 w-full border px-3 py-2 rounded bg-gray-100 cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="status" className="block text-sm font-medium">
-            Status
-          </label>
-          <input
-            id="status"
-            type="text"
-            value={job?.status || "Pending"}
-            readOnly
-            className="mt-1 w-full border px-3 py-2 rounded bg-gray-100 cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="ip" className="block text-sm font-medium">
-            Proof (IP Address)
-          </label>
-          <input
-            id="ip"
-            required
-            placeholder="e.g. 192.168.1.1:1234"
-            value={ipAddress}
-            onChange={(e) => setIpAddress(e.target.value)}
-            className="mt-1 w-full border px-3 py-2 rounded"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="device" className="block text-sm font-medium">
-            Device Type
-          </label>
-          <select
-            id="device"
-            required
-            value={deviceType}
-            onChange={(e) => setDeviceType(e.target.value)}
-            className="mt-1 w-full border px-3 py-2 rounded"
-          >
-            <option value="">Choose device</option>
-            <option value="Mobile">Mobile</option>
-            <option value="Tablet">Tablet</option>
-            <option value="Desktop">Desktop</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          className={`px-6 py-2 rounded font-medium transition ${
-            canSubmit
-              ? "bg-green-600 text-white hover:bg-green-700"
-              : "bg-green-600 text-white opacity-50 cursor-not-allowed"
-          }`}
-        >
-          Submit Job
-        </button>
-      </form>
-    </main>
   );
 };
 

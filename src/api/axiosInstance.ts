@@ -6,7 +6,7 @@ const API = axios.create({
 
 // Attach token to headers
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("gigpesa_token");
+  const token = sessionStorage.getItem("gigpesa_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

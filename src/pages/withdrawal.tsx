@@ -45,7 +45,7 @@ export default function WithdrawalPage() {
   }, []);
 
   const fetchEarnings = async () => {
-    const token = localStorage.getItem("gigpesa_token");
+    const token = sessionStorage.getItem("gigpesa_token");
     if (!token) return;
 
     try {
@@ -122,7 +122,7 @@ export default function WithdrawalPage() {
         status: "Pending",
       };
 
-      const token = localStorage.getItem("gigpesa_token");
+      const token = sessionStorage.getItem("gigpesa_token");
 
       const res = await fetch("http://192.168.1.24:5000/api/user/withdraw", {
         method: "POST",
@@ -154,7 +154,7 @@ export default function WithdrawalPage() {
 
   const fetchWithdrawals = async (page = 1) => {
     try {
-      const token = localStorage.getItem("gigpesa_token");
+      const token = sessionStorage.getItem("gigpesa_token");
       if (!token) return;
 
       const res = await axios.get<{
@@ -351,7 +351,12 @@ export default function WithdrawalPage() {
           {toast}
         </div>
       )}
-
+<style>{`
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .animate-marquee { animation: marquee 15s linear infinite; display: inline-block; }
+        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .animate-ticker { animation: ticker 20s linear infinite; }
+      `}</style>
       <Footer />
     </>
   );
