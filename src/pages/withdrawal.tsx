@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import Footer from "@/components/Footer";
 import axios from "axios";
 
 interface Withdrawal {
   id: string;
   method: string;
   name: string;
-  details: string;
   amount: string;
   status: string;
   createdAt?: string; 
@@ -17,7 +15,6 @@ export default function WithdrawalPage() {
   const [method, setMethod] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [details, setDetails] = useState("");
   const [amountError, setAmountError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmationVisible, setConfirmationVisible] = useState(false);
@@ -44,19 +41,24 @@ export default function WithdrawalPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchEarnings = async () => {
-    const token = sessionStorage.getItem("gigpesa_token");
-    if (!token) return;
+ const fetchEarnings = async () => {
+  const token = sessionStorage.getItem("gigpesa_token");
+  if (!token) return;
 
-    try {
-      const res = await axios.get(`${baseUrl}/user/dashboard/summary`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSummary(res.data);
-    } catch (error) {
-      console.error("Failed to fetch summary", error);
-    }
-  };
+  try {
+    const res = await axios.get(`${baseUrl}/user/dashboard/summary`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setSummary(res.data);
+
+    // ✅ Add this line to set the balance
+    setBalance(parseFloat(res.data.availableEarnings || "0"));
+  } catch (error) {
+    console.error("Failed to fetch summary", error);
+  }
+};
+
 
   const updateCountdowns = () => {
     const now = new Date();
@@ -118,7 +120,6 @@ export default function WithdrawalPage() {
       const payload = {
         amount: Number(amount),
         method,
-        details,
         status: "Pending",
       };
 
@@ -138,7 +139,6 @@ export default function WithdrawalPage() {
       if (result.success) {
         setAmount("");
         setMethod("");
-        setDetails("");
         setConfirmationVisible(true);
         setBalance(parseFloat(result.availableEarnings));
         setToast("✅ Withdrawal request submitted!");
@@ -357,7 +357,6 @@ export default function WithdrawalPage() {
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .animate-ticker { animation: ticker 20s linear infinite; }
       `}</style>
-      <Footer />
     </>
   );
 }

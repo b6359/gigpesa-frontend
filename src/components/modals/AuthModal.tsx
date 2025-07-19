@@ -33,7 +33,7 @@ type FormState = {
   securityAnswer: string;
   countrySearch: string;
   agree: boolean;
-  referrer: string;
+  referral: string;
 };
 
 const countries = [
@@ -265,13 +265,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
     securityAnswer: "",
     countrySearch: "",
     agree: false,
-    referrer: "",
+    referral: "",
   });
 
   useEffect(() => {
     const stored =
       referrerCode || sessionStorage.getItem("gigpesa_referrer") || "";
-    if (stored) setForm((p) => ({ ...p, referrer: stored }));
+    if (stored) setForm((p) => ({ ...p, referral: stored }));
   }, [referrerCode]);
 
   useEffect(() => {
@@ -392,7 +392,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
             gender: form.gender,
             country: form.country,
             securityAnswer: form.securityAnswer,
-            referrer: form.referrer,
+            referral: form.referral,
 
             dob: `${form.dobYear}-${form.dobMonth.padStart(
               2,
@@ -492,11 +492,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </p>
         </DialogHeader>
 
-        {isRegister && form.referrer && referrerCode && (
-          <div className="rounded-md bg-green-50 border text-center border-green-200 px-2 py-1 text-sm text-green-800">
-            <span className="font-semibold text-center">{form.referrer}</span>
-          </div>
-        )}
+        {isRegister && form.referral && (
+  <div className="rounded-md bg-green-50 border text-center border-green-200 px-2 py-1 text-sm text-green-800">
+    <span className="font-semibold text-center">{form.referral}</span>
+  </div>
+)}
+
         <ScrollArea className="h-full">
           <form onSubmit={handleSubmit} className="space-y-3 px-4 sm:px-6 ">
             {isRegister && (

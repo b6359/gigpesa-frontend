@@ -168,9 +168,11 @@ import WithdrawalPage from "./pages/withdrawal";
 import DashboardNavbar from "./components/DeshboardNavbar";
 import JobSubmissionPage from "./pages/job-submission";
 import RefPage from "./pages/RefPage";
-import Settings from "./pages/settings";
+import Settings from "./pages/Settings";
+import JobHistory from "./pages/JobHistory";
+import NotificationsPage from "./pages/NotificationsPage";
+import ReferralsUser from "./pages/ReferralsUser";
 
-// 🔁 Layout components
 type LayoutProps = {
   onRegister: () => void;
   onSignIn: () => void;
@@ -181,7 +183,10 @@ const DASHBOARD_ROUTES = [
   "/withdrawal",
   "/job-submission",
   "/referral",
-  "/settings"
+  "/settings",
+  "/referralsUser",
+  "/job-history",
+  "/notifications",
 ];
 
 const MainLayout = ({ onRegister, onSignIn }: LayoutProps) => {
@@ -191,13 +196,7 @@ const MainLayout = ({ onRegister, onSignIn }: LayoutProps) => {
     location.pathname.startsWith(path)
   );
 
-  const hideFooterRoutes = [
-    "/terms",
-    "/privacy",
-    "/contact-us",
-    "/ref",
-    ...DASHBOARD_ROUTES,
-  ];
+  const hideFooterRoutes = ["/terms", "/privacy", "/contact-us", "/refuser"];
 
   const shouldHideFooter = hideFooterRoutes.some((path) =>
     location.pathname.startsWith(path)
@@ -209,17 +208,20 @@ const MainLayout = ({ onRegister, onSignIn }: LayoutProps) => {
         <Navbar onRegister={onRegister} onSignIn={onSignIn} />
       )}
       {onDashboardArea && <DashboardNavbar />}
+    <div className="flex flex-col min-h-screen">
 
-      <Outlet />
+      <main className="flex-1">
+        <Outlet /> {/* or your routes/pages */}
+      </main>
 
       {!shouldHideFooter && <Footer />}
+      </div>
     </>
   );
 };
 
 const MinimalLayout = () => <Outlet />;
 
-// ✅ Main App
 function App() {
   const [modalType, setModalType] = useState<"register" | "signin" | null>(
     null
@@ -231,7 +233,6 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* 🧱 Main Layout */}
         <Route
           element={
             <MainLayout
@@ -260,9 +261,8 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact-us" element={<ContactUs />} />
-                    <Route path="/ref" element={<RefPage />} />
-                     <Route path="/ref/:id" element={<RefPage />} />
-        <Route path="/refer"   element={<Referral />} />
+          <Route path="/refuser" element={<RefPage />} />
+          <Route path="/refuser/:id" element={<RefPage />} />
 
           {/* ✅ Protected Routes */}
           <Route
@@ -277,11 +277,11 @@ function App() {
             path="/settings"
             element={
               <PrivateRoute>
-                <Settings/>
+                <Settings />
               </PrivateRoute>
             }
           />
-          
+
           <Route
             path="/withdrawal"
             element={
@@ -299,10 +299,35 @@ function App() {
             }
           />
           <Route
+            path="/referralsUser"
+            element={
+              <PrivateRoute>
+                <ReferralsUser />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/job-history"
+            element={
+              <PrivateRoute>
+                <JobHistory />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/referral"
             element={
               <PrivateRoute>
                 <Referral />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute>
+                <NotificationsPage />
               </PrivateRoute>
             }
           />

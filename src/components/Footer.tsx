@@ -5,7 +5,7 @@ import { SiTiktok } from "react-icons/si";
 
 const Footer = () => {
   return (
-    <footer className="bg-green-700 text-white px-6 py-10 mt-auto">
+    <footer className="bg-green-700 mt-4 text-white px-6 py-10 ">
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-center">
         {/* Navigation Links */}
         <div className="flex flex-col sm:flex-row sm:justify-center gap-4 text-sm text-white/90 text-center sm:text-left">

@@ -17,7 +17,7 @@ const getReferralLink = () => {
     }
   }
 
-  return `http://localhost:5173/ref/${id}`;
+  return `http://localhost:5173/refuser/${id}`;
 };
 
 const Referral: React.FC = () => {

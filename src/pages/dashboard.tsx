@@ -109,41 +109,6 @@ const JobDashboard: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loading, currentPage, totalPages]);
 
-  const filtered = tasks.filter((task) => {
-    const searchTerm = filters.search.trim().toLowerCase();
-
-    const matchesSearch =
-      !searchTerm ||
-      task.name.toLowerCase().includes(searchTerm) ||
-      task.description.toLowerCase().includes(searchTerm);
-
-    const jobCountries = task.country_codes
-      .split(";")
-      .map((c) => c.trim().toLowerCase());
-
-    const matchesCountry =
-      !filters.country || jobCountries.includes(filters.country.toLowerCase());
-
-    const matchesCategory =
-      !filters.category ||
-      task.category?.toLowerCase() === filters.category.toLowerCase();
-
-    const payout = parseFloat(task.default_payout || "0") * 0.3;
-
-    let minPay = 0;
-    let maxPay = Infinity;
-
-    if (filters.payment.includes("-")) {
-      const [min, max] = filters.payment.split("-").map(Number);
-      minPay = isNaN(min) ? 0 : min;
-      maxPay = isNaN(max) ? Infinity : max;
-    }
-
-    const matchesPayment =
-      !filters.payment || (payout >= minPay && payout <= maxPay);
-
-    return matchesSearch && matchesCountry && matchesCategory && matchesPayment;
-  });
 
   const updateFilter = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -443,21 +408,38 @@ const Dashboard: React.FC = () => {
               title: "Referrals",
               value: summary.referralCount.toString(),
               icon: <Users className="w-6 h-6 text-blue-600" />,
+              link: "/referralsUser",
             },
-          ].map(({ title, value, icon }) => (
-            <div
-              key={title}
-              className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg"
-            >
-              <div className="flex items-center gap-4">
-                {icon}
-                <div>
-                  <p className="text-sm text-gray-500">{title}</p>
-                  <p className="text-xl font-semibold">{value}</p>
+          ].map(({ title, value, icon, link }) =>
+            link ? (
+              <Link
+                key={title}
+                to={link}
+                className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg transition block"
+              >
+                <div className="flex items-center gap-4">
+                  {icon}
+                  <div>
+                    <p className="text-sm text-gray-500">{title}</p>
+                    <p className="text-xl font-semibold">{value}</p>
+                  </div>
+                </div>
+              </Link>
+            ) : (
+              <div
+                key={title}
+                className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg"
+              >
+                <div className="flex items-center gap-4">
+                  {icon}
+                  <div>
+                    <p className="text-sm text-gray-500">{title}</p>
+                    <p className="text-xl font-semibold">{value}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
 
         <JobDashboard />

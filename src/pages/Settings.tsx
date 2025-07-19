@@ -10,6 +10,7 @@ type User = {
   gender: string;
   country: string;
   securityAnswer: string;
+  profileImage?: string;
   total_earnings: string;
   pending_payments: string;
   createdAt: string;
@@ -22,14 +23,54 @@ const Settings: React.FC = () => {
   const [form, setForm] = useState<Partial<User>>({});
   const [loading, setLoad] = useState(false);
   const [error, setErr] = useState<string | null>(null);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("gigpesa_user");
     if (stored) {
-      const parsed = JSON.parse(stored) as User;
-      setUser(parsed);
+      const parsed = JSON.parse(stored);
       setForm(parsed);
+      setUser(parsed);
     }
+  }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileFile(file);
+      setForm((prev) => ({
+        ...prev,
+        profileImage: URL.createObjectURL(file),
+      }));
+    }
+  };
+
+  const fetchUser = async () => {
+    try {
+      const token = sessionStorage.getItem("gigpesa_token");
+      if (!token) return;
+
+      const res = await fetch("http://192.168.1.24:5000/api/user/profile", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch user");
+
+      const data = await res.json();
+      setUser(data);
+      setForm(data);
+      sessionStorage.setItem("gigpesa_user", JSON.stringify(data));
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      setErr("Failed to fetch user");
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
   }, []);
 
   const handleChange = (k: keyof User, v: string) =>
@@ -41,19 +82,34 @@ const Settings: React.FC = () => {
     setErr(null);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/user/${user.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const token = sessionStorage.getItem("gigpesa_token");
+      if (!token) return;
 
-      const updated = (await res.json()) as User;
-      setUser(updated);
-      sessionStorage.setItem("gigpesa_user", JSON.stringify(updated));
+      const formData = new FormData();
+      const { ...formToUpdate } = form;
+
+      for (const [key, value] of Object.entries(formToUpdate)) {
+        if (value) formData.append(key, value);
+      }
+
+      if (profileFile) {
+        formData.append("profileImage", profileFile);
+      }
+
+      const res = await fetch(`http://192.168.1.24:5000/api/profileUpdate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      await fetchUser();
       setEdit(false);
-    } catch (e: any) {
-      setErr(e.message || "Failed to save");
+    } catch (err) {
+      console.error("Update error:", err);
+      setErr("Failed to update profile");
     } finally {
       setLoad(false);
     }
@@ -68,11 +124,14 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto mt-10 p-6 bg-white shadow rounded-xl">
+    <div className="max-w-3xl mx-auto m-auto p-6 my-10 bg-white shadow rounded-xl">
       <header className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-green-700">
-          Profile Settings
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-semibold text-green-700">
+            Profile Settings
+          </h2>
+        </div>
+
         {edit ? (
           <button
             onClick={() => setEdit(false)}
@@ -90,6 +149,18 @@ const Settings: React.FC = () => {
         )}
       </header>
 
+      {!edit && user.profileImage && (
+        <div className="flex justify-center mb-6 border-green-600 shadow-xl object-cover w-24 h-24 rounded-full m-auto  border">
+          <img
+            src={
+              "http://192.168.1.24:5000/static/uploads/" + form?.profileImage
+            }
+            alt="Profile"
+            className="w-23 h-23 rounded-full  p-0.5 "
+          />
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded bg-red-50 border border-red-200 p-3 text-red-700">
           {error}
@@ -97,25 +168,50 @@ const Settings: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {edit && (
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Profile Image
+            </label>
+
+            {profileFile ? (
+              <div className="flex justify-center mb-6 border-blue-500 shadow-xl object-cover w-24 h-24 rounded-full  border">
+                <img
+                  src={URL.createObjectURL(profileFile)}
+                  alt="New Preview"
+                  className="w-23 h-23 rounded-full p-0.5 "
+                />
+              </div>
+            ) : form.profileImage ? (
+              <div className="flex justify-center mb-6 border-blue-500 shadow-xl object-cover w-24 h-24 rounded-full  border">
+                <img
+                  src={`http://192.168.1.24:5000/static/uploads/${form.profileImage}`}
+                  alt="Current"
+                  className="w-23 h-23 rounded-full p-0.5 "
+                />
+              </div>
+            ) : null}
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="block w-full text-sm text-gray-700"
+            />
+          </div>
+        )}
+
         <Field
           label="Full Name"
           value={form.name}
           editable={edit}
           onChange={(v) => handleChange("name", v)}
         />
-        <Field
-          label="Username"
-          value={form.username}
-          editable={edit}
-          onChange={(v) => handleChange("username", v)}
-        />
-        <Field
-          label="Email"
-          value={form.email}
-          editable={edit}
-          onChange={(v) => handleChange("email", v)}
-          type="email"
-        />
+
+        <Display label="Username" value={`${user.username}`} />
+
+        <Display label="email" value={`${user.email}`} />
+
         <Field
           label="Date of Birth"
           value={form.dob}
@@ -140,16 +236,6 @@ const Settings: React.FC = () => {
           value={form.securityAnswer}
           editable={edit}
           onChange={(v) => handleChange("securityAnswer", v)}
-        />
-        <Display label="Total Earnings" value={`$${user.total_earnings}`} />
-        <Display label="Pending Payments" value={`$${user.pending_payments}`} />
-        <Display
-          label="Account Created"
-          value={new Date(user.createdAt).toLocaleString()}
-        />
-        <Display
-          label="Last Updated"
-          value={new Date(user.updatedAt).toLocaleString()}
         />
       </div>
 
@@ -222,6 +308,5 @@ const Display = ({ label, value }: { label: string; value: string }) => (
     />
   </div>
 );
-
 
 export default Settings;
